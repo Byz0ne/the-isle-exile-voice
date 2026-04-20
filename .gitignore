@@ -1,0 +1,28 @@
+# Build output
+dist/
+*.dll
+*.exe
+*.pdb
+*.lib
+*.res
+
+# Local runtime logs/configs
+*.log
+exile_voice.ini
+exile_voice_client_id.txt
+config.local.json
+identity_map.local.json
+logs/
+reports/
+
+# Editor/OS noise
+.vs/
+.vscode/
+*.user
+Thumbs.db
+Desktop.ini
+__pycache__/
+*.py[cod]
+
+# Optional local toolchains
+/tools/

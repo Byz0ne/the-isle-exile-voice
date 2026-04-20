@@ -1,0 +1,5 @@
+PlayerData
+playerName=UtahNear steamId=76561198000000001 eosId=EOS_ALPHA PlayerLocation=(X=1000.0,Y=1000.0,Z=200.0)
+playerName=UtahFriend steamId=76561198000000002 eosId=EOS_BRAVO PlayerLocation=(X=13000.0,Y=2500.0,Z=180.0)
+playerName=RexFar steamId=76561198000000003 eosId=EOS_CHARLIE PlayerLocation=(X=92000.0,Y=-3000.0,Z=210.0)
+PlayerDataEnd

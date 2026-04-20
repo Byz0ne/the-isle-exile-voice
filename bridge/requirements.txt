@@ -1,0 +1,4 @@
+# Exile Voice bridge runs without required third-party packages.
+#
+# Optional, only for real Mumble Ice control:
+# zeroc-ice

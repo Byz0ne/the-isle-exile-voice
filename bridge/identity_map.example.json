@@ -1,0 +1,25 @@
+{
+  "players": [
+    {
+      "steam_id": "76561198000000001",
+      "eos_id": "EOS_ALPHA",
+      "game_name": "UtahNear",
+      "mumble_name": "UtahNear",
+      "mumble_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "steam_id": "76561198000000002",
+      "eos_id": "EOS_BRAVO",
+      "game_name": "UtahFriend",
+      "mumble_name": "UtahFriend",
+      "mumble_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+      "steam_id": "76561198000000003",
+      "eos_id": "EOS_CHARLIE",
+      "game_name": "RexFar",
+      "mumble_name": "RexFar",
+      "mumble_hash": "cccccccccccccccccccccccccccccccccccccccc"
+    }
+  ]
+}

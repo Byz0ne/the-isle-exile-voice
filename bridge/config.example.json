@@ -1,0 +1,70 @@
+{
+  "mode": "mock",
+  "poll_interval_sec": 5.0,
+  "identity_map_file": "identity_map.example.json",
+  "mock": {
+    "fixture": "fixtures/sample_playerdata.txt"
+  },
+  "rcon": {
+    "host": "127.0.0.1",
+    "port": 8888,
+    "password": "CHANGE_ME_RCON_PASSWORD",
+    "protocol": "evrima",
+    "line_ending": "\\n",
+    "send_password_first": true,
+    "read_idle_ms": 350,
+    "read_timeout_sec": 4.0,
+    "commands": [
+      "PlayerList",
+      "PlayerData"
+    ]
+  },
+  "proximity": {
+    "audible_distance": 30000.0,
+    "fade_start": 12000.0,
+    "shard_size": 45000.0,
+    "channel_prefix": "TransportShard_",
+    "unknown_channel": "The Isle - Lobby",
+    "hash_salt": "CHANGE_ME_RANDOM_SALT",
+    "pan_width": 20000.0
+  },
+  "mumble": {
+    "adapter": "dry_run",
+    "root_channel": "The Isle - Lobby",
+    "dry_run_print_every_tick": true,
+    "ice": {
+      "host": "127.0.0.1",
+      "port": 6502,
+      "secret": "",
+      "server_id": 1,
+      "slice_path": "/usr/share/slice/Murmur.ice",
+      "create_channels": true,
+      "match_by": [
+        "hash",
+        "name"
+      ]
+    }
+  },
+  "falloff_server": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 8890,
+    "api_key": "CHANGE_ME_SHARED_KEY",
+    "send_interval_sec": 1.0
+  },
+  "verify": {
+    "enabled": false,
+    "command": "!verify",
+    "code_ttl_sec": 300,
+    "game_chat_enabled": true,
+    "game_command": "!verify",
+    "game_log_file": "/opt/theisle/server/TheIsle/Saved/Logs/TheIsle.log",
+    "game_code_mumble_fallback": true,
+    "game_code_display_sec": 60,
+    "game_code_repeat_interval_sec": 8,
+    "game_message_prefix": "\n\n"
+  },
+  "logs": {
+    "directory": "logs"
+  }
+}

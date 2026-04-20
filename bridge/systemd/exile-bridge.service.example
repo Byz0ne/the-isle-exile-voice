@@ -1,0 +1,15 @@
+[Unit]
+Description=Exile Voice Bridge
+Wants=network-online.target
+After=network-online.target mumble-server.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/exile-bridge
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/exile-bridge/.venv/bin/python -m exile_bridge run --config /opt/exile-bridge/config.local.json
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
