@@ -11,7 +11,6 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <windows.h>
-#include <wincrypt.h>
 
 #include <ctype.h>
 #include <math.h>
@@ -71,7 +70,6 @@ static ExileConfig g_config;
 static char g_plugin_dir[EXILE_MAX_PATH] = { 0 };
 static char g_config_path[EXILE_MAX_PATH] = { 0 };
 static char g_log_path[EXILE_MAX_PATH] = { 0 };
-static char g_client_id_path[EXILE_MAX_PATH] = { 0 };
 static char g_local_hash[EXILE_MAX_HASH] = { 0 };
 
 static UserHashEntry g_user_hashes[EXILE_MAX_USERS];
@@ -226,7 +224,6 @@ static void discover_plugin_paths(void) {
 
 	snprintf(g_config_path, sizeof(g_config_path), "%s\\exile_voice.ini", g_plugin_dir);
 	snprintf(g_log_path, sizeof(g_log_path), "%s\\exile_voice.log", g_plugin_dir);
-	snprintf(g_client_id_path, sizeof(g_client_id_path), "%s\\exile_voice_client_id.txt", g_plugin_dir);
 }
 
 static void load_config(void) {
@@ -263,69 +260,6 @@ static void load_config(void) {
 	env_len = GetEnvironmentVariableA("EXILE_VOICE_PORT", env_port, sizeof(env_port));
 	if (env_len > 0 && env_len < sizeof(env_port)) {
 		g_config.server_port = atoi(env_port);
-	}
-}
-
-static bool looks_like_client_id(const char *text) {
-	if (!text || strlen(text) < 32 || strlen(text) >= EXILE_MAX_HASH) {
-		return false;
-	}
-	for (const char *p = text; *p; p++) {
-		if (!isxdigit((unsigned char) *p)) {
-			return false;
-		}
-	}
-	return true;
-}
-
-static void make_random_client_id(char *out, size_t out_size) {
-	static const char *hex = "0123456789abcdef";
-	unsigned char bytes[20];
-	HCRYPTPROV provider = 0;
-	bool ok = false;
-
-	if (CryptAcquireContextA(&provider, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
-		ok = CryptGenRandom(provider, sizeof(bytes), bytes) == TRUE;
-		CryptReleaseContext(provider, 0);
-	}
-
-	if (!ok) {
-		DWORD tick = GetTickCount();
-		DWORD pid = GetCurrentProcessId();
-		for (size_t i = 0; i < sizeof(bytes); i++) {
-			bytes[i] = (unsigned char) ((tick >> ((i % 4) * 8)) ^ (pid >> (((i + 1) % 4) * 8)) ^ (i * 37));
-		}
-	}
-
-	size_t pos = 0;
-	for (size_t i = 0; i < sizeof(bytes) && pos + 2 < out_size; i++) {
-		out[pos++] = hex[(bytes[i] >> 4) & 0x0f];
-		out[pos++] = hex[bytes[i] & 0x0f];
-	}
-	out[pos] = '\0';
-}
-
-static void load_or_create_client_id(char *out, size_t out_size) {
-	FILE *file = fopen(g_client_id_path, "rb");
-	if (file) {
-		char buffer[EXILE_MAX_HASH] = { 0 };
-		if (fgets(buffer, sizeof(buffer), file)) {
-			char *id = trim(buffer);
-			if (looks_like_client_id(id)) {
-				safe_copy(out, out_size, id);
-				fclose(file);
-				return;
-			}
-		}
-		fclose(file);
-	}
-
-	make_random_client_id(out, out_size);
-
-	file = fopen(g_client_id_path, "wb");
-	if (file) {
-		fprintf(file, "%s\r\n", out);
-		fclose(file);
 	}
 }
 
@@ -437,14 +371,13 @@ static void update_local_hash(void) {
 		g_api.freeMemory(g_plugin_id, hash);
 	}
 
-	char fallback_id[EXILE_MAX_HASH] = { 0 };
-	load_or_create_client_id(fallback_id, sizeof(fallback_id));
-
 	EnterCriticalSection(&g_lock);
-	safe_copy(g_local_hash, sizeof(g_local_hash), fallback_id);
+	g_local_hash[0] = '\0';
 	LeaveCriticalSection(&g_lock);
 
-	log_both("Mumble certificate hash is empty; using Exile client id=%.*s", 8, fallback_id);
+	log_both("Mumble certificate hash is not yet available. "
+			 "If this persists, generate a certificate via Configure -> Certificate Wizard "
+			 "and reconnect. Spatial voice will activate as soon as the hash is known.");
 }
 
 static bool read_socket_line(SOCKET sock, char *line, size_t line_size) {
@@ -775,7 +708,13 @@ MUMBLE_PLUGIN_EXPORT void MUMBLE_PLUGIN_CALLING_CONVENTION mumble_onUserAdded(mu
 																			 mumble_userid_t userID) {
 	(void) connection;
 	(void) userID;
+	if (!g_local_hash[0]) {
+		update_local_hash();
+	}
 	refresh_user_hashes();
+	if (g_local_hash[0]) {
+		start_worker_if_needed();
+	}
 }
 
 MUMBLE_PLUGIN_EXPORT void MUMBLE_PLUGIN_CALLING_CONVENTION mumble_onUserRemoved(mumble_connection_t connection,
@@ -793,7 +732,13 @@ MUMBLE_PLUGIN_EXPORT void MUMBLE_PLUGIN_CALLING_CONVENTION mumble_onChannelEnter
 	(void) userID;
 	(void) previousChannelID;
 	(void) newChannelID;
+	if (!g_local_hash[0]) {
+		update_local_hash();
+	}
 	refresh_user_hashes();
+	if (g_local_hash[0]) {
+		start_worker_if_needed();
+	}
 }
 
 MUMBLE_PLUGIN_EXPORT bool MUMBLE_PLUGIN_CALLING_CONVENTION mumble_onAudioInput(short *inputPCM, uint32_t sampleCount,
