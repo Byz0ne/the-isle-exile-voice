@@ -194,18 +194,31 @@ class VerificationManager:
         print(f"[verify] chat command from {mumble_name or '(unknown)'} hash={mumble_hash[:8] or '-'} text={text!r}")
 
         if not mumble_hash:
-            candidates = self.plugin_hashes()
-            if len(candidates) == 1:
-                mumble_hash = candidates[0].lower()
-                print(f"[verify] using only connected plugin hash {mumble_hash[:8]} for {mumble_name or '(unknown)'}")
-            else:
-                print(f"[verify] cannot continue: Mumble user state has no certificate hash and {len(candidates)} plugin clients are connected")
-                self._send_mumble(
-                    session,
-                    "Verification failed: your Mumble certificate hash is missing. "
-                    "Make sure exactly one Exile Voice plugin client is connected, then try again.",
-                )
-                return
+            mumble_hash = self._lookup_hash_for_session(session)
+            if mumble_hash:
+                print(f"[verify] resolved hash {mumble_hash[:8]} for session {session} via Ice getState")
+
+        if not mumble_hash:
+            print(f"[verify] cannot continue: Mumble session {session} has no certificate hash")
+            self._send_mumble(
+                session,
+                "Verification failed: your Mumble client has no certificate hash. "
+                "In Mumble open Configure -> Certificate Wizard and create a certificate, "
+                "reconnect, then try again.",
+            )
+            return
+
+        connected = {h.lower() for h in self.plugin_hashes()}
+        if connected and mumble_hash not in connected:
+            print(f"[verify] hash {mumble_hash[:8]} for session {session} is not in the falloff client list "
+                  f"(connected={[h[:8] for h in connected]})")
+            self._send_mumble(
+                session,
+                "Verification failed: your Exile Voice plugin is not connected to the bridge. "
+                "Load the plugin in Mumble (Configure -> Plugins, enable Exile Voice), "
+                "wait a few seconds, then try again.",
+            )
+            return
 
         if VERIFY_CODE_RE.match(arg):
             self._complete_code(session, mumble_name, mumble_hash, arg)
@@ -382,6 +395,16 @@ class VerificationManager:
             self._server.sendMessage(session, text)
         except Exception as exc:
             print(f"[verify] could not send Mumble message to session {session}: {exc}")
+
+    def _lookup_hash_for_session(self, session: int) -> str:
+        if self._server is None or session < 0:
+            return ""
+        try:
+            state = self._server.getState(session)
+        except Exception as exc:
+            print(f"[verify] could not getState({session}): {exc}")
+            return ""
+        return str(getattr(state, "hash", "")).strip().lower()
 
     def _connect_ice_callback(self) -> None:
         try:
